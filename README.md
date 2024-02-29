@@ -69,3 +69,15 @@ The proposed self-training architecture with anchor network regularization and c
 
 This project is licensed same as SAM model.
 
+## 🖊️ Citation
+
+If you find this project useful in your research, please consider cite:
+
+```BibTeX
+@article{zhang2023improving,
+      title={Improving the Generalization of Segmentation Foundation Model under Distribution Shift via Weakly Supervised Adaptation},
+      author={Zhang, Haojie and Su, Yongyi and Xu, Xun and Jia, Kui},
+      journal={arXiv preprint arXiv:2312.03502},
+      year={2023}
+}
+```
