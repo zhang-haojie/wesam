@@ -28,7 +28,7 @@ base_config = {
     ],
     "model": {
         "type": "vit_b",
-        "checkpoint": "/mnt/sdb/zhang.haojie/checkpoints/sam/",
+        "checkpoint": "./checkpoints/",
         "ckpt": "",
         "freeze": {
             "image_encoder": True,
@@ -45,25 +45,11 @@ base_config = {
             "root_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/val2017",
             "annotation_file": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/annotations/instances_val2017.json",
         },
-        "lvis": {
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017",
-            "annotation_file": "/mnt/sdb/zhang.haojie/Dataset/detection/LVIS/lvis_v1_val.json"
-        },
         "PascalVOC": {
             "root_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/VOC2012/",
-            "peopleart_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/PeopleArt"
-        },
-        "prompt":{
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/val2017",
-            "annotation_file": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/annotations/prompts_val2017.json",
         },
         "sa": {
             "root_dir": "/mnt/sdb/zhang.haojie/Dataset/segmentation/SA-1B",
-        },
-        "memory": {
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/segmentation/memory",
-            "train": "/mnt/sdb/zhang.haojie/Dataset/segmentation/memory/train.txt",
-            "test": "/mnt/sdb/zhang.haojie/Dataset/segmentation/memory/test.txt"
         },
         "Polyp":{
             "root_dir": "/mnt/sdb/zhang.haojie/Dataset/segmentation/polyp/Kvasir-SEG",
@@ -93,21 +79,11 @@ base_config = {
         },
         "COD10K":{
             "GT": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/Test/GT_Object",
-            "train": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD/TrainDataset/Imgs",
             "test": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/Test/Image",
         },
-        "COD": {
-            "train": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/TrainDataset/Imgs",
-            "CAMO": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/TestDataset/CAMO/Imgs",
-            "CHAMELEON": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/TestDataset/CHAMELEON/Imgs",
-            "COD10k": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/TestDataset/COD10K/Imgs",
-        },
-        "indoor": {
+        "robot": {
             "OCID": "/mnt/sdb/zhang.haojie/Dataset/segmentation/OCID-dataset",
             "OSD": "/mnt/sdb/zhang.haojie/Dataset/segmentation/OSD-0.2-depth"
         },
-        "Personal": {
-            "PerSeg": "/mnt/sdb/zhang.haojie/Dataset/oneshot/PerSeg/data/Images"
-        }
     },
 }

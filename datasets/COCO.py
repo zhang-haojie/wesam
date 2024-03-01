@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from pycocotools.coco import COCO
 from skimage.draw import polygon2mask
-from datasets.tools import ResizeAndPad, soft_transform, soft_transform_all, collate_fn, collate_fn_soft, collate_fn_, jitter_bbox
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_
 
 
 class COCODataset(Dataset):
@@ -69,8 +69,6 @@ class COCODataset(Dataset):
             masks.append(mask)
             categories.append(ann["category_id"])
 
-        # bboxes = jitter_bbox(bboxes, image.shape, self.cfg.jitter)
-
         if self.if_self_training:
             image_weak, bboxes_weak, masks_weak, image_strong = soft_transform(image, bboxes, masks, categories)
             # image_origin = image_weak
@@ -120,17 +118,13 @@ class COCODatasetwithCoarse(COCODataset):
         ann_ids = self.coco.getAnnIds(imgIds=image_id)
         anns = self.coco.loadAnns(ann_ids)
 
-        # image_ = image.copy()
         bboxes = []
         masks = []
-        # keypoints = []
         coarse_masks = []
         categories = []
         approxes = []
-        # i = 0
+
         for ann in anns:
-            # x, y, w, h = ann["bbox"]
-            # bboxes.append([x, y, x + w, y + h])
             mask = self.coco.annToMask(ann)
 
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -139,9 +133,6 @@ class COCODatasetwithCoarse(COCODataset):
             approx = cv2.approxPolyDP(contours[0], num_vertices, True)  # [x, y]
             approx = approx.squeeze(1)
 
-            # cv2.drawContours(image_, [contours[0]], 0, (255, 0, 0), 2)
-            # cv2.drawContours(image_, [approx], 0, (255, 0, 0), 2)
-            # coordinates = [[y, x] for [x, y] in approx]
             coordinates = np.array(approx)
             x_max, x_min = max(coordinates[:, 0]), min(coordinates[:, 0])
             y_max, y_min = max(coordinates[:, 1]), min(coordinates[:, 1])
@@ -151,39 +142,18 @@ class COCODatasetwithCoarse(COCODataset):
                 bboxes.append([x, y, x + w, y + h])
             else:
                 bboxes.append([x_min, y_min, x_max, y_max])
-            # if x_min == x_max:
-            #     x_min = max(x_min - 1, 0)
-            #     x_max = min(x_max + 1, mask.shape[1])
-            # if y_min == y_max:
-            #     y_min = max(y_min - 1, 0)
-            #     y_max = min(y_max + 1, mask.shape[0])
-
-            # cv2.rectangle(image_, (int(x), int(y)), (int(x + w), int(y + h)), (0, 255, 0), 2, 4)
-            # cv2.imwrite(f"/home/zhang.haojie/workspace/data/coco/coarse/mask_{i}.jpg", mask.astype(np.uint8)*255)
-            # i += 1
 
             masks.append(mask)
-            # keypoints.extend(coordinates)
-            # keypoints.append(coordinates)
             coarse_masks.append(coarse_mask)
-            # bboxes.append([x_min, y_min, x_max, y_max])
             approxes.append(approx)
             categories.append(ann["category_id"])
 
-        # cv2.imwrite("/home/zhang.haojie/workspace/data/coco/coarse/test.jpg", image_)        
         if self.if_self_training:
             image_weak, bboxes_weak, masks_weak, image_strong = soft_transform(image, bboxes, masks, categories)
-            # image_weak, bboxes_weak, masks_weak, keypoints_weak, image_strong = soft_transform_all(image, bboxes, coarse_masks, keypoints, categories)
-            # new_keypoints = []
-            # for bbox in bboxes_weak:
-            #     for point in keypoints_weak:
-            #         if  bbox[0] <= point[0] <= bbox[2] and bbox[1] <= point[1] <= bbox[3]:
-            #             new_keypoints.append(point)
 
             if self.transform:
                 image_weak, masks_weak, bboxes_weak = self.transform(image_weak, masks_weak, np.array(bboxes_weak))
                 image_strong = self.transform.transform_image(image_strong)
-                # points_weak = self.transform.transform_coords(image_weak, new_keypoints)
 
             bboxes_weak = np.stack(bboxes_weak, axis=0)
             masks_weak = np.stack(masks_weak, axis=0)
@@ -198,23 +168,18 @@ class COCODatasetwithCoarse(COCODataset):
 
             bboxes = np.stack(bboxes, axis=0)
             masks = np.stack(masks, axis=0)
-            # origin_approxes = np.stack(origin_approxes, axis=0)
             origin_masks = np.stack(origin_masks, axis=0)
             return image_id, padding, origin_image, origin_approxes, origin_masks, image, torch.tensor(bboxes), torch.tensor(masks).float()
 
         else:
             if self.transform:
                 _, coarse_masks, _ = self.transform(image, coarse_masks, np.array(bboxes))
-                # new_keypoints = []
-                # for points in keypoints:
-                #     new_keypoints.append(self.transform.transform_coords(points, image))
                 image, masks, bboxes = self.transform(image, masks, np.array(bboxes))
 
             bboxes = np.stack(bboxes, axis=0)
             masks = np.stack(masks, axis=0)
             coarse_masks = np.stack(coarse_masks, axis=0)
             return image, torch.tensor(bboxes), torch.tensor(masks).float()
-
 
 
 def load_datasets(cfg, img_size):

@@ -1,14 +1,9 @@
-import os
 import random
-import cv2
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
-from pycocotools.coco import COCO
 from segment_anything.utils.transforms import ResizeLongestSide
-from datasets.augmentation import corrupt_image, weak_transforms, strong_transforms, spatial_transforms
+from datasets.augmentation import weak_transforms, strong_transforms
 
 
 class ResizeAndPad:
@@ -22,8 +17,6 @@ class ResizeAndPad:
         # Resize image and masks
         og_h, og_w, _ = image.shape
         image = self.transform.apply_image(image)
-        # input_size = image.shape[:2]
-        # print(input_size)
         masks = [torch.tensor(self.transform.apply_image(mask)) for mask in masks]
         image = self.to_tensor(image)
 
@@ -80,30 +73,6 @@ class ResizeAndPad:
         coords = points.reshape(-1, n, 2)
         points = self.transform.apply_coords(coords, (og_h, og_w))
         return points.reshape(-1, n, 2)
-
-
-def jitter_bbox(bbox, img_size, limit=0.2):
-    num_boxes = len(bbox)
-    jittered_bbox = []
-    for i in range(num_boxes):
-        x1, y1, x2, y2 = bbox[i]
-
-        width = x2 - x1
-        height = y2 - y1
-
-        jitter_range = int(limit * min(width, height))
-
-        dx = random.uniform(-jitter_range, jitter_range)
-        dy = random.uniform(-jitter_range, jitter_range)
-
-        x1 = max(0, min(x1 + dx, img_size[1]))
-        y1 = max(0, min(y1 + dy, img_size[0]))
-        x2 = max(0, min(x2 + dx, img_size[1]))
-        y2 = max(0, min(y2 + dy, img_size[0]))
-
-        jittered_bbox.append([x1, y1, x2, y2])
-
-    return jittered_bbox
 
 
 def soft_transform(
@@ -198,8 +167,6 @@ def encode_mask(mask):
 
 
 if __name__ == "__main__":
-    # from config import cfg
-    # visualize(cfg)
     mask_encode = np.array([[[0, 0, 1], [2, 0, 2], [0, 3, 3]]])
     mask_decode = np.array([[[0, 0, 1], [0, 0, 0], [0, 0, 0]],
                             [[0, 0, 0], [1, 0, 1], [0, 0, 0]],

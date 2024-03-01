@@ -9,7 +9,7 @@ import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from skimage.draw import polygon2mask
 
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, jitter_bbox, collate_fn_, encode_mask, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, decode_mask
 
 
 class PolypDataset(Dataset):
@@ -19,7 +19,6 @@ class PolypDataset(Dataset):
         self.transform = transform
         with open(annotation_file, "r") as ann_file:
             anns = json.load(ann_file)
-        # all_images = [os.path.join(root_dir, "images", name, ".jpg") for name in anns.keys()]
         all_images = list(anns.keys())
 
         train_images = []
@@ -156,9 +155,7 @@ class PolypDatasetwithCoarse(PolypDataset):
             coarse_mask = polygon2mask(mask.shape, coordinates).astype(mask.dtype)
 
             masks.append(mask)
-            # bboxes.append([x_min, y_min, x_max, y_max])
 
-        # bboxes = jitter_bbox(bboxes, image.shape, limit=0.3)
         masks = [mask for mask in gt_masks]
 
         if self.if_self_training:
