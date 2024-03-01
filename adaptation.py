@@ -122,10 +122,10 @@ def train_sam(
             torch.cuda.empty_cache()
 
         if epoch % cfg.eval_interval == 0:
-            iou, f1_score = validate(fabric, cfg, model, val_dataloader, cfg.corrupt, epoch)
+            iou, f1_score = validate(fabric, cfg, model, val_dataloader, cfg.name, epoch)
             if iou > max_iou:
                 state = {"model": model, "optimizer": optimizer}
-                fabric.save(os.path.join(cfg.out_dir, cfg.out_name, "save", "last-ckpt.pth"), state)
+                fabric.save(os.path.join(cfg.out_dir, "save", "last-ckpt.pth"), state)
                 max_iou = iou
 
 
@@ -150,7 +150,7 @@ def configure_opt(cfg: Box, model: Model):
 def corrupt_main(cfg):
     for corrupt in cfg.corruptions:
         cfg.corrupt = corrupt
-        cfg.out_name = corrupt
+        cfg.name = corrupt
         torch.cuda.empty_cache()
         main(cfg)
 
@@ -162,15 +162,13 @@ def main(cfg: Box) -> None:
     fabric = L.Fabric(accelerator="auto",
                       devices=num_devices,
                       strategy="auto",
-                      loggers=[TensorBoardLogger(cfg.out_dir, name=cfg.out_name)])
+                      loggers=[TensorBoardLogger(cfg.out_dir)])
     fabric.launch()
     fabric.seed_everything(1337 + fabric.global_rank)
 
     if fabric.global_rank == 0:
-        out_dir = os.path.join(cfg.out_dir, cfg.out_name)
-        os.makedirs(out_dir, exist_ok=True)
-        create_csv(os.path.join(out_dir, "metrics.csv"), csv_head=cfg.csv_keys)
-        os.makedirs(os.path.join(out_dir, "save"), exist_ok=True)
+        os.makedirs(os.path.join(cfg.out_dir, "save"), exist_ok=True)
+        create_csv(os.path.join(cfg.out_dir, "metrics.csv"), csv_head=cfg.csv_keys)
 
     with fabric.device:
         model = Model(cfg)
@@ -190,7 +188,7 @@ def main(cfg: Box) -> None:
         optimizer.load_state_dict(full_checkpoint["optimizer"])
 
     anchor_model = copy_model(model)
-    # validate(fabric, cfg, anchor_model, val_data, name=cfg.corrupt, epoch=0)
+    validate(fabric, cfg, anchor_model, val_data, name=cfg.name, epoch=0)
     train_sam(cfg, fabric, model, anchor_model, optimizer, scheduler, train_data, val_data)
 
     del model, anchor_model, train_data, val_data

@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from skimage.draw import polygon2mask
 from pathlib import Path
 from PIL import Image
-from datasets.tools import ResizeAndPad, soft_transform, soft_transform_all, collate_fn, collate_fn_soft, collate_fn_, encode_mask, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, decode_mask
 
 
 class OSDObject(Dataset):
@@ -164,14 +164,8 @@ class OSDObjectwithCoarse(OSDObject):
                 bboxes.append([x, y, x + w, y + h])
             else:
                 bboxes.append([x_min, y_min, x_max, y_max])
-            # if x_min == x_max:
-            #     x_min = max(x_min - 1, 0)
-            #     x_max = min(x_max + 1, mask.shape[1])
-            # if y_min == y_max:
-            #     y_min = max(y_min - 1, 0)
-            #     y_max = min(y_max + 1, mask.shape[0])
+
             masks.append(mask)
-            # bboxes.append([x_min, y_min, x_max, y_max])
             categories.append("0")
 
         if self.if_self_training:
@@ -197,13 +191,13 @@ def load_datasets(cfg, img_size):
     transform = ResizeAndPad(img_size)
     train = OSDObject(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
         training=True,
     )
     val = OSDObject(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
     )
     train_dataloader = DataLoader(
@@ -227,12 +221,12 @@ def load_datasets_soft(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = OSDObject(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
     )
     soft_train = OSDObject(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
         training=True,
         if_self_training=True,
@@ -258,13 +252,13 @@ def load_datasets_coarse(cfg, img_size):
     transform = ResizeAndPad(img_size)
     train = OSDObjectwithCoarse(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
         training=True,
     )
     val = OSDObjectwithCoarse(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
     )
     train_dataloader = DataLoader(
@@ -288,12 +282,12 @@ def load_datasets_soft_coarse(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = OSDObjectwithCoarse(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
     )
     soft_train = OSDObjectwithCoarse(
         cfg,
-        root_dir=cfg.datasets.indoor.OSD,
+        root_dir=cfg.datasets.robot.OSD,
         transform=transform,
         training=True,
         if_self_training=True,

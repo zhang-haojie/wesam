@@ -1,14 +1,12 @@
 import os
 import cv2
 import random
-# import xmltodict
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from xml.etree import ElementTree as ET
 from skimage.draw import polygon2mask
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_, jitter_bbox, encode_mask, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_, decode_mask
 
 
 class PascalVOCDataset(Dataset):
@@ -95,33 +93,6 @@ class PascalVOCDataset(Dataset):
         return label_mask
 
     def __getitem__(self, idx):
-
-        # with open(anno_path) as f:
-        #     tree = ET.parse(f)
-
-        # r = {
-        #     "file_name": image_path,
-        #     "height": int(tree.findall("./size/height")[0].text),
-        #     "width": int(tree.findall("./size/width")[0].text),
-        # }
-        # masks = []
-        # bboxes = []
-        # categories = []
-        # for obj in tree.findall("object"):
-        #     cls = obj.find("name").text
-        #     bbox = obj.find("bndbox")
-        #     bbox = [float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]]
-
-        #     bbox[0] -= 1.0
-        #     bbox[1] -= 1.0
-        #     bboxes.append(bbox)
-        #     categories.append("cls")
-
-        # tree = ET.parse(anno_path)
-        # with open(anno_path) as file:
-        #     file_data = file.read()
-        #     dict_data = xmltodict.parse(file_data)
-        #     # print(dict_data)
 
         anno_path = self.image_ids[idx]
         image_path = anno_path.replace("SegmentationObject", "JPEGImages").replace(".png", ".jpg")

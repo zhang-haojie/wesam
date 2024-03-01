@@ -44,6 +44,8 @@ def get_prompts(cfg: Box, bboxes, gt_masks):
         prompts = bboxes
     elif cfg.prompt == "point":
         prompts = get_point_prompts(gt_masks, cfg.num_points)
+    else:
+        raise ValueError("Prompt Type Error!")
     return prompts
 
 
@@ -77,9 +79,9 @@ def validate(fabric: L.Fabric, cfg: Box, model: Model, val_dataloader: DataLoade
             torch.cuda.empty_cache()
 
     fabric.print(f'Validation [{epoch}]: Mean IoU: [{ious.avg:.4f}] -- Mean F1: [{f1_scores.avg:.4f}]')
-    csv_dict = {"Name": name, "Mean IoU": f"{ious.avg:.4f}", "Mean F1": f"{f1_scores.avg:.4f}", "epoch": epoch}
+    csv_dict = {"Name": name, "Prompt": cfg.prompt, "Mean IoU": f"{ious.avg:.4f}", "Mean F1": f"{f1_scores.avg:.4f}", "epoch": epoch}
 
     if fabric.global_rank == 0:
-        write_csv(os.path.join(cfg.out_dir, cfg.out_name, "metrics.csv"), csv_dict, csv_head=cfg.csv_keys)
+        write_csv(os.path.join(cfg.out_dir, "metrics.csv"), csv_dict, csv_head=cfg.csv_keys)
     model.train()
     return ious.avg, f1_scores.avg

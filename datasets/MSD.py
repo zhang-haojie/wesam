@@ -9,12 +9,11 @@ import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from skimage.draw import polygon2mask
 
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, jitter_bbox, collate_fn_
-from tools import encode_mask, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_, decode_mask
 
 
 class MSDDataset(Dataset):
-    def __init__(self, cfg, root_dir, transform=None, training=False, if_self_training=False):
+    def __init__(self, cfg, root_dir, transform=None, if_self_training=False):
         self.cfg = cfg
         self.root_dir = root_dir
         self.transform = transform
@@ -115,16 +114,10 @@ class MSDDatasetwithCoarse(MSDDataset):
                 bboxes.append([x, y, x + w, y + h])
             else:
                 bboxes.append([x_min, y_min, x_max, y_max])
-            # if x_min == x_max:
-            #     x_min = max(x_min - 1, 0)
-            #     x_max = min(x_max + 1, mask.shape[1])
-            # if y_min == y_max:
-            #     y_min = max(y_min - 1, 0)
-            #     y_max = min(y_max + 1, mask.shape[0])
+
             masks.append(mask)
             categories.append("0")
             approxes.append(approx)
-            # bboxes.append([x_min, y_min, x_max, y_max])
 
         if self.if_self_training:
             image_weak, bboxes_weak, masks_weak, image_strong = soft_transform(image, bboxes, masks, categories)
@@ -147,7 +140,6 @@ class MSDDatasetwithCoarse(MSDDataset):
 
             bboxes = np.stack(bboxes, axis=0)
             masks = np.stack(masks, axis=0)
-            # origin_approxes = np.stack(origin_approxes, axis=0)
             origin_masks = np.stack(origin_masks, axis=0)
             return image_name, padding, origin_image, origin_approxes, origin_masks, image, torch.tensor(bboxes), torch.tensor(masks).float()
 
@@ -171,7 +163,6 @@ def load_datasets(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.MSD.train,
         transform=transform,
-        training=True,
     )
     val_dataloader = DataLoader(
         val,
@@ -201,7 +192,6 @@ def load_datasets_soft(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.MSD.train,
         transform=transform,
-        training=True,
         if_self_training=True,
     )
     val_dataloader = DataLoader(
@@ -232,7 +222,6 @@ def load_datasets_coarse(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.MSD.train,
         transform=transform,
-        training=True,
     )
     val_dataloader = DataLoader(
         val,
@@ -262,7 +251,6 @@ def load_datasets_soft_coarse(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.MSD.train,
         transform=transform,
-        training=True,
         if_self_training=True,
     )
     val_dataloader = DataLoader(

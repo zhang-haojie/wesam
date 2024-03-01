@@ -7,11 +7,11 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from skimage.draw import polygon2mask
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_, encode_mask, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_, decode_mask
 
 
 class CAMODataset(Dataset):
-    def __init__(self, cfg, image_root, gt_root, transform=None, training=False, if_self_training=False):
+    def __init__(self, cfg, image_root, gt_root, transform=None, if_self_training=False):
         self.cfg = cfg
         self.root_dir = image_root
         self.transform = transform
@@ -135,16 +135,9 @@ class CAMODatasetwithCoarse(CAMODataset):
                 bboxes.append([x, y, x + w, y + h])
             else:
                 bboxes.append([x_min, y_min, x_max, y_max])
-            # if x_min == x_max:
-            #     x_min = max(x_min - 1, 0)
-            #     x_max = min(x_max + 1, mask.shape[1])
-            # if y_min == y_max:
-            #     y_min = max(y_min - 1, 0)
-            #     y_max = min(y_max + 1, mask.shape[0])
 
             masks.append(mask)
             coarse_masks.append(coarse_mask)
-            # bboxes.append([x_min, y_min, x_max, y_max])
             approxes.append(approx)
             categories.append("0")
 
@@ -195,7 +188,6 @@ def load_datasets(cfg, img_size):
         image_root=cfg.datasets.CAMO.train,
         gt_root=cfg.datasets.CAMO.GT,
         transform=transform,
-        training=True,
     )
     val_dataloader = DataLoader(
         val,
@@ -227,7 +219,6 @@ def load_datasets_soft(cfg, img_size):
         image_root=cfg.datasets.CAMO.train,
         gt_root=cfg.datasets.CAMO.GT,
         transform=transform,
-        training=True,
         if_self_training=True,
     )
     val_dataloader = DataLoader(
@@ -260,7 +251,6 @@ def load_datasets_coarse(cfg, img_size):
         image_root=cfg.datasets.CAMO.train,
         gt_root=cfg.datasets.CAMO.GT,
         transform=transform,
-        training=True,
     )
     val_dataloader = DataLoader(
         val,
@@ -292,7 +282,6 @@ def load_datasets_soft_coarse(cfg, img_size):
         image_root=cfg.datasets.CAMO.train,
         gt_root=cfg.datasets.CAMO.GT,
         transform=transform,
-        training=True,
         if_self_training=True,
     )
     val_dataloader = DataLoader(
