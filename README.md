@@ -94,6 +94,13 @@ python adaptation.py
 
 The content of this project itself is licensed under [LICENSE](LICENSE).
 
+## 💡 Acknowledgement
+
+- [SAM](https://github.com/facebookresearch/segment-anything)
+
+- [lightning-sam](https://github.com/luca-medeiros/lightning-sam)
+
+- [SAM-LoRA](https://github.com/JamesQFreeman/Sam_LoRA)
 
 ## 🖊️ Citation
 
