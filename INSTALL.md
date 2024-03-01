@@ -13,6 +13,9 @@
 conda create --name wesam python=3.8
 conda activate wesam
 
+# CUDA 11.7
+conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.7 -c pytorch -c nvidia
+
 git clone https://github.com/zhang-haojie/wesam.git
 cd wesam
 pip install -r requirements.txt
