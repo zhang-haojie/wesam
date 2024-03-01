@@ -39,13 +39,13 @@ The proposed self-training architecture with anchor network regularization and c
 
 ### 1. Install Environment
 
-see [INSTALL](INSTALL.md)
+see [INSTALL](INSTALL.md).
 
 ### 2. Prepare Dataset and Checkpoints
 
-see [PREPARE](PREPARE.md)
+see [PREPARE](PREPARE.md).
 
-### 3. Adapt with weak adaptation
+### 3. Adapt with Weak Supervision
 
 ```
 # 1 modify configs/config.py 

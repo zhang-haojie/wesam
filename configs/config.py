@@ -11,7 +11,7 @@ config = {
     "max_nums": 50,
     "num_points": 5,
     "resume": False,
-    "dataset": "COD10K",
+    "dataset": "COCO",
     "visual": False,
     "load_type": "soft",
     "prompt": "box",
