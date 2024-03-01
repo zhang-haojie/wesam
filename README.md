@@ -33,7 +33,7 @@ The proposed self-training architecture with anchor network regularization and c
 
 ## 📆 TODO
 
-- [×] Release code
+- [x] Release code
 
 ## 🎮 Getting Started
 

@@ -14,7 +14,6 @@ from losses import DiceLoss, FocalLoss, ContraLoss
 from datasets import call_load_dataset
 
 from model import Model
-from sam_lora import LoRA_Sam
 from utils.eval_utils import AverageMeter, calc_iou, validate, get_prompts
 from utils.tools import copy_model, create_csv, check_grad, momentum_update, reduce_instances
 
