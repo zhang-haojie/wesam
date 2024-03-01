@@ -186,15 +186,15 @@ def load_datasets(cfg, img_size):
     transform = ResizeAndPad(img_size)
     train = COCODataset(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
         training=True,
     )
     val = COCODataset(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     train_dataloader = DataLoader(
@@ -218,14 +218,14 @@ def load_datasets_soft(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = COCODataset(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     soft_train = COCODataset(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
         training=True,
         if_self_training=True,
@@ -251,15 +251,15 @@ def load_datasets_coarse(cfg, img_size):
     transform = ResizeAndPad(img_size)
     train = COCODatasetwithCoarse(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
         training=True,
     )
     val = COCODatasetwithCoarse(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     train_dataloader = DataLoader(
@@ -283,14 +283,14 @@ def load_datasets_soft_coarse(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = COCODatasetwithCoarse(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     soft_train = COCODatasetwithCoarse(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
         training=True,
         if_self_training=True,
@@ -316,20 +316,20 @@ def load_datasets_soft_all(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = COCODataset(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     val_coarse = COCODatasetwithCoarse(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     soft_train = COCODataset(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
         training=True,
         if_self_training=True,
@@ -362,8 +362,8 @@ def load_datasets_visual(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = COCODataset(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     val_dataloader = DataLoader(
@@ -380,8 +380,8 @@ def load_datasets_visual_coarse(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = COCODatasetwithCoarse(
         cfg,
-        root_dir=cfg.datasets.val.root_dir,
-        annotation_file=cfg.datasets.val.annotation_file,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
     )
     val_dataloader = DataLoader(

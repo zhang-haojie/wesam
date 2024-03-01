@@ -37,53 +37,49 @@ base_config = {
         },
     },
     "datasets": {
-        "train": {
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/train2017",
-            "annotation_file": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/annotations/instances_train2017.json",
-        },
-        "val": {
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/val2017",
-            "annotation_file": "/mnt/sdb/zhang.haojie/Dataset/detection/coco2017/annotations/instances_val2017.json",
+        "coco": {
+            "root_dir": "./data/coco2017/val2017",            
+            "annotation_file": "./data/coco2017/annotations/instances_val2017.json",
         },
         "PascalVOC": {
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/detection/VOC2012/",
+            "root_dir": "./data/VOC2012/",
         },
         "sa": {
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/segmentation/SA-1B",
+            "root_dir": "./data/SA-1B",
         },
         "Polyp":{
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/segmentation/polyp/Kvasir-SEG",
-            "annotation_file": "/mnt/sdb/zhang.haojie/Dataset/segmentation/polyp/Kvasir-SEG/kavsir_bboxes.json"
+            "root_dir": "./data/polyp/Kvasir-SEG",
+            "annotation_file": "./data/polyp/Kvasir-SEG/kavsir_bboxes.json"
         },
         "ISIC": {
-            "root_dir": "/mnt/sdb/zhang.haojie/Dataset/segmentation/ISIC/",
-            "train_list": "/mnt/sdb/zhang.haojie/Dataset/segmentation/ISIC/ISBI2016_ISIC_Part1_Training_GroundTruth.csv",
-            "test_list": "/mnt/sdb/zhang.haojie/Dataset/segmentation/ISIC/ISBI2016_ISIC_Part1_Test_GroundTruth.csv"
+            "root_dir": "./data/ISIC/",
+            "train_list": "./data/ISIC/ISBI2016_ISIC_Part1_Training_GroundTruth.csv",
+            "test_list": "./data/ISIC/ISBI2016_ISIC_Part1_Test_GroundTruth.csv"
         },
         "ISTD": {
-            "train": "/mnt/sdb/zhang.haojie/Dataset/segmentation/ISTD/train/train_A",
-            "test": "/mnt/sdb/zhang.haojie/Dataset/segmentation/ISTD/test/test_A",
+            "train": "./data/ISTD/train/train_A",
+            "test": "./data/ISTD/test/test_A",
         },
         "MSD": {
-            "train": "/mnt/sdb/zhang.haojie/Dataset/segmentation/MSD/train/image",
-            "test": "/mnt/sdb/zhang.haojie/Dataset/segmentation/MSD/test/image",
+            "train": "./data/MSD/train/image",
+            "test": "./data/MSD/test/image",
         },
         "GDD": {
-            "train": "/mnt/sdb/zhang.haojie/Dataset/segmentation/GDD/train/image",
-            "test": "/mnt/sdb/zhang.haojie/Dataset/segmentation/GDD/test/image",
+            "train": "./data/GDD/train/image",
+            "test": "./data/GDD/test/image",
         },
         "CAMO":{
-            "GT": "/mnt/sdb/zhang.haojie/Dataset/segmentation/CAMO-V.1.0-CVIU2019/GT",
-            "train": "/mnt/sdb/zhang.haojie/Dataset/segmentation/CAMO-V.1.0-CVIU2019/Images/Train",
-            "test": "/mnt/sdb/zhang.haojie/Dataset/segmentation/CAMO-V.1.0-CVIU2019/Images/Test",
+            "GT": "./data/CAMO-V.1.0-CVIU2019/GT",
+            "train": "./data/CAMO-V.1.0-CVIU2019/Images/Train",
+            "test": "./data/CAMO-V.1.0-CVIU2019/Images/Test",
         },
         "COD10K":{
-            "GT": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/Test/GT_Object",
-            "test": "/mnt/sdb/zhang.haojie/Dataset/segmentation/COD10K-v2/Test/Image",
+            "GT": "./data/COD10K-v2/Test/GT_Object",
+            "test": "./data/COD10K-v2/Test/Image",
         },
         "robot": {
-            "OCID": "/mnt/sdb/zhang.haojie/Dataset/segmentation/OCID-dataset",
-            "OSD": "/mnt/sdb/zhang.haojie/Dataset/segmentation/OSD-0.2-depth"
+            "OCID": "./data/OCID-dataset",
+            "OSD": "./data/OSD-0.2-depth"
         },
     },
 }
