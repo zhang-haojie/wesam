@@ -82,6 +82,17 @@ def check_grad(model: torch.nn.Module):
         print(f"{name}: {param.requires_grad}")
 
 
+def check_equal(model1: torch.nn.Module, model2: torch.nn.Module):
+    for (name1, param1), (name2, param2) in zip(model1.named_parameters(), model2.named_parameters()):
+        if name1 == name2:
+            if not torch.allclose(param1, param2):
+                print(f"{name1} is different")
+            else:
+                print(f"same")
+        else:
+            print("The models have different structures")
+
+
 def check_model(model):
     return summary(model, (3, 1024, 1024), batch_size=1, device="cuda")
 

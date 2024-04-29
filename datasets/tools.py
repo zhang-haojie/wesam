@@ -84,7 +84,7 @@ def soft_transform(
     bboxes_weak = weak_transformed["bboxes"]
     masks_weak = weak_transformed["masks"]
 
-    strong_transformed = strong_transforms(image=image)
+    strong_transformed = strong_transforms(image=image_weak)
     image_strong = strong_transformed["image"]
     return image_weak, bboxes_weak, masks_weak, image_strong
 
@@ -99,7 +99,7 @@ def soft_transform_all(
     masks_weak = weak_transformed["masks"]
     keypoints_weak = weak_transformed["keypoints"]
 
-    strong_transformed = strong_transforms(image=image)
+    strong_transformed = strong_transforms(image=image_weak)
     image_strong = strong_transformed["image"]
     return image_weak, bboxes_weak, masks_weak, keypoints_weak, image_strong
 

@@ -152,7 +152,7 @@ def load_datasets_soft(cfg, img_size):
     val_dataloader = DataLoader(
         val,
         batch_size=cfg.batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=cfg.num_workers,
         collate_fn=collate_fn,
     )
@@ -182,7 +182,7 @@ def load_datasets_soft_coarse(cfg, img_size):
     val_dataloader = DataLoader(
         val,
         batch_size=cfg.batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=cfg.num_workers,
         collate_fn=collate_fn,
     )
