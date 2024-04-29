@@ -10,8 +10,8 @@
 
 ## 🎈 News
 
-- [2024.2] Our work has been accepted to CVPR 2024 🎉
-
+- [2024.2.27] Our work has been accepted to CVPR 2024 🎉
+- [2024.3.1] Training and inference code released
 
 ## 🚀 Introduction
 
