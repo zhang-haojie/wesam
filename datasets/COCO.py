@@ -3,37 +3,38 @@ import cv2
 import random
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader, Subset
 from pycocotools.coco import COCO
 from skimage.draw import polygon2mask
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_
 
 
 class COCODataset(Dataset):
-    def __init__(self, cfg, root_dir, annotation_file, rate=(6, 1), transform=None, training=False, if_self_training=False):
+    def __init__(self, cfg, root_dir, annotation_file, transform=None, split=False, training=False, if_self_training=False):
         self.cfg = cfg
         self.root_dir = root_dir
         self.transform = transform
         self.coco = COCO(annotation_file)
         all_image_ids = sorted(list(self.coco.imgs.keys()))
 
-        train_image_ids = []
-        eval_image_ids = []
-        train_rate, eval_rate = rate
-        while all_image_ids:
-            for _ in range(train_rate):
+        if split:
+            train_image_ids = []
+            eval_image_ids = []
+            while all_image_ids:
+                for _ in range(6):
+                    if all_image_ids:
+                        train_image_ids.append(all_image_ids.pop(0))
                 if all_image_ids:
-                    train_image_ids.append(all_image_ids.pop(0))
-            if all_image_ids:
-                eval_image_ids.append(all_image_ids.pop(0))
+                    eval_image_ids.append(all_image_ids.pop(0))
 
-        if training:
-            random.shuffle(train_image_ids)
-            image_ids = train_image_ids
+            if training:
+                random.shuffle(train_image_ids)
+                image_ids = train_image_ids
+            else:
+                random.shuffle(eval_image_ids)
+                image_ids = eval_image_ids
         else:
-            random.shuffle(eval_image_ids)
-            image_ids = eval_image_ids
+            image_ids = all_image_ids
 
         # Filter out image_ids without any annotations
         self.image_ids = [
@@ -57,22 +58,34 @@ class COCODataset(Dataset):
         # corrupt_image(image, image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+        if self.cfg.get_prompt:
+            image_info["file_path"] = image_path
+            return image_id, image_info, image
+
         ann_ids = self.coco.getAnnIds(imgIds=image_id)
         anns = self.coco.loadAnns(ann_ids)
         bboxes = []
         masks = []
         categories = []
         for ann in anns:
+            if len(masks) > 150:
+                break
             x, y, w, h = ann["bbox"]
-            bboxes.append([x, y, x + w, y + h])
             mask = self.coco.annToMask(ann)
+            if w == 0 or h ==0 and np.count_nonzero(mask) < 100:
+                continue
             masks.append(mask)
+            bboxes.append([x, y, x + w, y + h])
             categories.append(ann["category_id"])
 
         if self.if_self_training:
             image_weak, bboxes_weak, masks_weak, image_strong = soft_transform(image, bboxes, masks, categories)
             # image_origin = image_weak
 
+            # image_weak = cv2.cvtColor(image_weak, cv2.COLOR_RGB2BGR)
+            # image_strong = cv2.cvtColor(image_strong, cv2.COLOR_RGB2BGR)
+            # cv2.imwrite('image_weak.jpg', image_weak)
+            # cv2.imwrite('image_strong.jpg', image_strong)
 
             if self.transform:
                 image_weak, masks_weak, bboxes_weak = self.transform(image_weak, masks_weak, np.array(bboxes_weak))
@@ -190,13 +203,16 @@ def load_datasets(cfg, img_size):
         root_dir=cfg.datasets.coco.root_dir,
         annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
+        split=cfg.split,
         training=True,
+        if_self_training=cfg.augment,
     )
     val = COCODataset(
         cfg,
         root_dir=cfg.datasets.coco.root_dir,
         annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
+        split=cfg.split,
     )
     train_dataloader = DataLoader(
         train,
@@ -213,39 +229,6 @@ def load_datasets(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
-
-
-def load_datasets_soft(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = COCODataset(
-        cfg,
-        root_dir=cfg.datasets.coco.root_dir,
-        annotation_file=cfg.datasets.coco.annotation_file,
-        transform=transform,
-    )
-    soft_train = COCODataset(
-        cfg,
-        root_dir=cfg.datasets.coco.root_dir,
-        annotation_file=cfg.datasets.coco.annotation_file,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
 
 
 def load_datasets_coarse(cfg, img_size):
@@ -255,13 +238,16 @@ def load_datasets_coarse(cfg, img_size):
         root_dir=cfg.datasets.coco.root_dir,
         annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
+        split=cfg.split,
         training=True,
+        if_self_training=cfg.augment,
     )
     val = COCODatasetwithCoarse(
         cfg,
         root_dir=cfg.datasets.coco.root_dir,
         annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
+        split=cfg.split,
     )
     train_dataloader = DataLoader(
         train,
@@ -280,85 +266,6 @@ def load_datasets_coarse(cfg, img_size):
     return train_dataloader, val_dataloader
 
 
-def load_datasets_soft_coarse(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = COCODatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.coco.root_dir,
-        annotation_file=cfg.datasets.coco.annotation_file,
-        transform=transform,
-    )
-    soft_train = COCODatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.coco.root_dir,
-        annotation_file=cfg.datasets.coco.annotation_file,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
-
-
-def load_datasets_soft_all(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = COCODataset(
-        cfg,
-        root_dir=cfg.datasets.coco.root_dir,
-        annotation_file=cfg.datasets.coco.annotation_file,
-        transform=transform,
-    )
-    val_coarse = COCODatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.coco.root_dir,
-        annotation_file=cfg.datasets.coco.annotation_file,
-        transform=transform,
-    )
-    soft_train = COCODataset(
-        cfg,
-        root_dir=cfg.datasets.coco.root_dir,
-        annotation_file=cfg.datasets.coco.annotation_file,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    val_coarse_dataloader = DataLoader(
-        val_coarse,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader, val_coarse_dataloader
-
-
 def load_datasets_visual(cfg, img_size):
     transform = ResizeAndPad(img_size)
     val = COCODataset(
@@ -366,7 +273,9 @@ def load_datasets_visual(cfg, img_size):
         root_dir=cfg.datasets.coco.root_dir,
         annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
+        split=cfg.split,
     )
+    # subset = Subset(val, indices=range(0, 100))
     val_dataloader = DataLoader(
         val,
         batch_size=cfg.val_batchsize,
@@ -384,6 +293,47 @@ def load_datasets_visual_coarse(cfg, img_size):
         root_dir=cfg.datasets.coco.root_dir,
         annotation_file=cfg.datasets.coco.annotation_file,
         transform=transform,
+        split=cfg.split,
+    )
+    val_dataloader = DataLoader(
+        val,
+        batch_size=cfg.val_batchsize,
+        shuffle=False,
+        num_workers=cfg.num_workers,
+        collate_fn=collate_fn_,
+    )
+    return val_dataloader
+
+
+def load_datasets_prompt(cfg, img_size):
+    transform = ResizeAndPad(img_size)
+    train = COCODataset(
+        cfg,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
+        transform=transform,
+        split=cfg.split,
+        training=True,
+        if_self_training=cfg.augment,
+    )
+    train_dataloader = DataLoader(
+        train,
+        batch_size=cfg.batch_size,
+        shuffle=True,
+        num_workers=cfg.num_workers,
+        collate_fn=collate_fn_,
+    )
+    return train_dataloader
+
+
+def load_datasets_val(cfg, img_size):
+    transform = ResizeAndPad(img_size)
+    val = COCODataset(
+        cfg,
+        root_dir=cfg.datasets.coco.root_dir,
+        annotation_file=cfg.datasets.coco.annotation_file,
+        transform=transform,
+        split=cfg.split,
     )
     val_dataloader = DataLoader(
         val,

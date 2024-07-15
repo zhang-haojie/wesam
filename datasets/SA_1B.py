@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from pycocotools.coco import COCO
 from pycocotools import mask as mask_utils
 from skimage.draw import polygon2mask
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_
 
 
 class SADataset(Dataset):
@@ -42,6 +42,14 @@ class SADataset(Dataset):
         image_path = self.image_list[idx]
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        if self.cfg.get_prompt:
+            image_info = {}
+            height, width, _ = image.shape
+            image_info["file_path"] = image_path
+            image_info["height"] = height
+            image_info["width"] = width
+            return idx, image_info, image
 
         json_path = image_path.replace(".jpg", ".json")
         with open(json_path, "r") as f:
@@ -129,13 +137,14 @@ class SADatasetwithCoarse(SADataset):
             return image, torch.tensor(bboxes), torch.tensor(masks).float()
 
 
-def load_datasets_soft(cfg, img_size):
+def load_datasets(cfg, img_size):
     transform = ResizeAndPad(img_size)
     train = SADataset(
         cfg,
         root_dir=cfg.datasets.sa.root_dir,
         transform=transform,
         training=True,
+        if_self_training=cfg.augment,
     )
     val = SADataset(
         cfg,
@@ -159,13 +168,14 @@ def load_datasets_soft(cfg, img_size):
     return train_dataloader, val_dataloader
 
 
-def load_datasets_soft_coarse(cfg, img_size):
+def load_datasets_coarse(cfg, img_size):
     transform = ResizeAndPad(img_size)
     train = SADatasetwithCoarse(
         cfg,
         root_dir=cfg.datasets.sa.root_dir,
         transform=transform,
         training=True,
+        if_self_training=cfg.augment,
     )
     val = SADatasetwithCoarse(
         cfg,
@@ -187,3 +197,22 @@ def load_datasets_soft_coarse(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
+
+
+def load_datasets(cfg, img_size):
+    transform = ResizeAndPad(img_size)
+    train = SADataset(
+        cfg,
+        root_dir=cfg.datasets.sa.root_dir,
+        transform=transform,
+        training=True,
+        if_self_training=cfg.augment,
+    )
+    train_dataloader = DataLoader(
+        train,
+        batch_size=cfg.batch_size,
+        shuffle=True,
+        num_workers=cfg.num_workers,
+        collate_fn=collate_fn_,
+    )
+    return train_dataloader

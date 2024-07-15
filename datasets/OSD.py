@@ -9,11 +9,11 @@ from torch.utils.data import Dataset
 from skimage.draw import polygon2mask
 from pathlib import Path
 from PIL import Image
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, decode_mask, collate_fn_
 
 
 class OSDObject(Dataset):
-    def __init__(self, cfg, root_dir, transform, training=False, if_self_training=False):
+    def __init__(self, cfg, root_dir, transform=None, split=False, training=False, if_self_training=False):
         self.cfg = cfg
         self._osd_object_path = root_dir
         self.transform = transform
@@ -22,21 +22,24 @@ class OSDObject(Dataset):
         all_image_paths = sorted(glob.glob(data_path + '/*.png'))
         all_image_paths = self.check_empty(all_image_paths)
 
-        train_image_paths = []
-        eval_image_paths = []
-        while all_image_paths:
-            for _ in range(1):
+        if split:
+            train_image_paths = []
+            eval_image_paths = []
+            while all_image_paths:
+                for _ in range(6):
+                    if all_image_paths:
+                        train_image_paths.append(all_image_paths.pop(0))
                 if all_image_paths:
-                    train_image_paths.append(all_image_paths.pop(0))
-            if all_image_paths:
-                eval_image_paths.append(all_image_paths.pop(0))
+                    eval_image_paths.append(all_image_paths.pop(0))
 
-        if training:
-            random.shuffle(train_image_paths)
-            image_paths = train_image_paths
+            if training:
+                random.shuffle(train_image_paths)
+                image_paths = train_image_paths
+            else:
+                random.shuffle(eval_image_paths)
+                image_paths = eval_image_paths
         else:
-            random.shuffle(eval_image_paths)
-            image_paths = eval_image_paths
+            image_paths = all_image_paths
 
         self.image_files = image_paths
         # self.image_files = all_image_paths
@@ -84,6 +87,14 @@ class OSDObject(Dataset):
 
         image = cv2.imread(filename)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        if self.cfg.get_prompt:
+            image_info = {}
+            height, width, _ = image.shape
+            image_info["file_path"] = filename
+            image_info["height"] = height
+            image_info["width"] = width
+            return idx, image_info, image
 
         labels_filename = filename.replace('image_color', 'annotation')
         annotation = Image.open(labels_filename)
@@ -193,12 +204,15 @@ def load_datasets(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.robot.OSD,
         transform=transform,
+        split=cfg.split,
         training=True,
+        if_self_training=cfg.augment,
     )
     val = OSDObject(
         cfg,
         root_dir=cfg.datasets.robot.OSD,
         transform=transform,
+        split=cfg.split,
     )
     train_dataloader = DataLoader(
         train,
@@ -215,37 +229,6 @@ def load_datasets(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
-
-
-def load_datasets_soft(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = OSDObject(
-        cfg,
-        root_dir=cfg.datasets.robot.OSD,
-        transform=transform,
-    )
-    soft_train = OSDObject(
-        cfg,
-        root_dir=cfg.datasets.robot.OSD,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
 
 
 def load_datasets_coarse(cfg, img_size):
@@ -254,12 +237,15 @@ def load_datasets_coarse(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.robot.OSD,
         transform=transform,
+        split=cfg.split,
         training=True,
+        if_self_training=cfg.augment,
     )
     val = OSDObjectwithCoarse(
         cfg,
         root_dir=cfg.datasets.robot.OSD,
         transform=transform,
+        split=cfg.split,
     )
     train_dataloader = DataLoader(
         train,
@@ -278,32 +264,21 @@ def load_datasets_coarse(cfg, img_size):
     return train_dataloader, val_dataloader
 
 
-def load_datasets_soft_coarse(cfg, img_size):
+def load_datasets_prompt(cfg, img_size):
     transform = ResizeAndPad(img_size)
-    val = OSDObjectwithCoarse(
+    train = OSDObject(
         cfg,
         root_dir=cfg.datasets.robot.OSD,
         transform=transform,
-    )
-    soft_train = OSDObjectwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.robot.OSD,
-        transform=transform,
+        split=cfg.split,
         training=True,
-        if_self_training=True,
+        if_self_training=cfg.augment,
     )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
+    train_dataloader = DataLoader(
+        train,
         batch_size=cfg.batch_size,
         shuffle=True,
         num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
+        collate_fn=collate_fn_,
     )
-    return soft_train_dataloader, val_dataloader
+    return train_dataloader
