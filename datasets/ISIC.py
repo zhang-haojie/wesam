@@ -9,11 +9,11 @@ import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from skimage.draw import polygon2mask
 
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_, decode_mask
 
 
 class ISICDataset(Dataset):
-    def __init__(self, cfg, root_dir, list_file, transform=None, training=False, if_self_training=False):
+    def __init__(self, cfg, root_dir, list_file, transform=None, if_self_training=False):
         self.cfg = cfg
         df = pd.read_csv(os.path.join(list_file), encoding='gbk')
         self.name_list = df.iloc[:,1].tolist()
@@ -31,6 +31,14 @@ class ISICDataset(Dataset):
         image_path = os.path.join(self.root_dir, name)
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        if self.cfg.get_prompt:
+            image_info = {}
+            height, width, _ = image.shape
+            image_info["file_path"] = image_path
+            image_info["height"] = height
+            image_info["width"] = width
+            return idx, image_info, image
 
         label_name = self.label_list[idx]
         gt_path = os.path.join(self.root_dir, label_name)
@@ -166,7 +174,7 @@ def load_datasets(cfg, img_size):
         root_dir=cfg.datasets.ISIC.root_dir,
         list_file=cfg.datasets.ISIC.train_list,
         transform=transform,
-        training=True,
+        if_self_training=cfg.augment,
     )
     val_dataloader = DataLoader(
         val,
@@ -183,39 +191,6 @@ def load_datasets(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
-
-
-def load_datasets_soft(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = ISICDataset(
-        cfg,
-        root_dir=cfg.datasets.ISIC.root_dir,
-        list_file=cfg.datasets.ISIC.test_list,
-        transform=transform,
-    )
-    soft_train = ISICDataset(
-        cfg,
-        root_dir=cfg.datasets.ISIC.root_dir,
-        list_file=cfg.datasets.ISIC.train_list,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
 
 
 def load_datasets_coarse(cfg, img_size):
@@ -231,7 +206,7 @@ def load_datasets_coarse(cfg, img_size):
         root_dir=cfg.datasets.ISIC.root_dir,
         list_file=cfg.datasets.ISIC.train_list,
         transform=transform,
-        training=True,
+        if_self_training=cfg.augment,
     )
     val_dataloader = DataLoader(
         val,
@@ -248,39 +223,6 @@ def load_datasets_coarse(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
-
-
-def load_datasets_soft_coarse(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = ISICDatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.ISIC.root_dir,
-        list_file=cfg.datasets.ISIC.test_list,
-        transform=transform,
-    )
-    soft_train = ISICDatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.ISIC.root_dir,
-        list_file=cfg.datasets.ISIC.train_list,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
 
 
 def load_datasets_visual(cfg, img_size):
@@ -317,3 +259,22 @@ def load_datasets_visual_coarse(cfg, img_size):
         collate_fn=collate_fn_,
     )
     return val_dataloader
+
+
+def load_datasets_prompt(cfg, img_size):
+    transform = ResizeAndPad(img_size)
+    train = ISICDataset(
+        cfg,
+        root_dir=cfg.datasets.ISIC.root_dir,
+        list_file=cfg.datasets.ISIC.train_list,
+        transform=transform,
+        if_self_training=cfg.augment,
+    )
+    train_dataloader = DataLoader(
+        train,
+        batch_size=cfg.batch_size,
+        shuffle=True,
+        num_workers=cfg.num_workers,
+        collate_fn=collate_fn_,
+    )
+    return train_dataloader

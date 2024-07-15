@@ -1,9 +1,38 @@
-import random
-import numpy as np
+import os
+import cv2
 import torch
+import numpy as np
+import albumentations as A
 import torchvision.transforms as transforms
 from segment_anything.utils.transforms import ResizeLongestSide
-from datasets.augmentation import weak_transforms, strong_transforms
+from imagecorruptions import corrupt, get_corruption_names
+
+# A.RandomCropNearBBox()
+# A.BBoxSafeRandomCrop()
+# A.RandomSizedBBoxSafeCrop()
+
+weak_transforms = A.Compose(
+    [
+        A.Flip(),
+        A.HorizontalFlip(),
+        A.VerticalFlip(),
+        # A.BBoxSafeRandomCrop()
+    ],
+    bbox_params=A.BboxParams(format="pascal_voc", label_fields=["category_ids"]),
+    # keypoint_params=A.KeypointParams(format='xy')
+)
+
+
+strong_transforms = A.Compose(
+    [
+        A.Posterize(),
+        A.Equalize(),
+        A.Sharpen(),
+        A.Solarize(),
+        A.RandomBrightnessContrast(),
+        A.RandomShadow(),
+    ]
+)
 
 
 class ResizeAndPad:
@@ -75,11 +104,23 @@ class ResizeAndPad:
         return points.reshape(-1, n, 2)
 
 
-def soft_transform(
-    image: np.ndarray, bboxes: list, masks: list, categories: list
-):
+def corrupt_image(image, filename):
+    file_name = os.path.basename(os.path.abspath(filename))
+    file_path = os.path.dirname(os.path.abspath(filename))
+    for corruption in get_corruption_names():
+        corrupted = corrupt(image, severity=5, corruption_name=corruption)
+        corrupt_path = file_path.replace(
+            "val2017", os.path.join("corruption", corruption)
+        )
+        if not os.path.exists(corrupt_path):
+            os.makedirs(corrupt_path, exist_ok=True)
+        cv2.imwrite(os.path.join(corrupt_path, file_name), corrupted)
+
+
+def soft_transform(image: np.ndarray, bboxes: list, masks: list, categories: list):
     weak_transformed = weak_transforms(
-        image=image, bboxes=bboxes, masks=masks, category_ids=categories)
+        image=image, bboxes=bboxes, masks=masks, category_ids=categories
+    )
     image_weak = weak_transformed["image"]
     bboxes_weak = weak_transformed["bboxes"]
     masks_weak = weak_transformed["masks"]
@@ -93,7 +134,12 @@ def soft_transform_all(
     image: np.ndarray, bboxes: list, masks: list, points: list, categories: list
 ):
     weak_transformed = weak_transforms(
-        image=image, bboxes=bboxes, masks=masks, category_ids=categories, keypoints=points)
+        image=image,
+        bboxes=bboxes,
+        masks=masks,
+        category_ids=categories,
+        keypoints=points,
+    )
     image_weak = weak_transformed["image"]
     bboxes_weak = weak_transformed["bboxes"]
     masks_weak = weak_transformed["masks"]
@@ -105,23 +151,17 @@ def soft_transform_all(
 
 
 def collate_fn(batch):
-    images, bboxes, masks = zip(*batch)
-    images = torch.stack(images)
-    return images, bboxes, masks
-
-
-def collate_fn_soft(batch):
-    images_soft, images, bboxes, masks = zip(*batch)
-    images = torch.stack(images)
-    # images_origin = np.stack(images_origin)
-    images_soft = torch.stack(images_soft)
-    return images_soft, images, bboxes, masks
-
-
-def collate_fn_coarse(batch):
-    images, bboxes, masks, coarse_masks = zip(*batch)
-    images = torch.stack(images)
-    return images, bboxes, masks, coarse_masks
+    if len(batch[0]) == 3:
+        images, bboxes, masks = zip(*batch)
+        images = torch.stack(images)
+        return images, bboxes, masks
+    elif len(batch[0]) == 4:
+        images_soft, images, bboxes, masks = zip(*batch)
+        images = torch.stack(images)
+        images_soft = torch.stack(images_soft)
+        return images_soft, images, bboxes, masks
+    else:
+        raise ValueError("Unexpected batch format")
 
 
 def collate_fn_(batch):
@@ -168,8 +208,12 @@ def encode_mask(mask):
 
 if __name__ == "__main__":
     mask_encode = np.array([[[0, 0, 1], [2, 0, 2], [0, 3, 3]]])
-    mask_decode = np.array([[[0, 0, 1], [0, 0, 0], [0, 0, 0]],
-                            [[0, 0, 0], [1, 0, 1], [0, 0, 0]],
-                            [[0, 0, 0], [0, 0, 0], [0, 1, 1]]])
+    mask_decode = np.array(
+        [
+            [[0, 0, 1], [0, 0, 0], [0, 0, 0]],
+            [[0, 0, 0], [1, 0, 1], [0, 0, 0]],
+            [[0, 0, 0], [0, 0, 0], [0, 1, 1]],
+        ]
+    )
     encoded_mask = encode_mask(torch.tensor(mask_decode))
     decoded_mask = decode_mask(torch.tensor(mask_encode))

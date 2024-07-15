@@ -1,4 +1,5 @@
 import os
+import glob
 import time
 import torch
 import lightning as L
@@ -14,6 +15,7 @@ from losses import DiceLoss, FocalLoss, ContraLoss
 from datasets import call_load_dataset
 
 from model import Model
+from sam_lora import LoRA_Sam
 from utils.eval_utils import AverageMeter, calc_iou, validate, get_prompts
 from utils.tools import copy_model, create_csv, check_grad, momentum_update, reduce_instances
 
@@ -29,23 +31,23 @@ def train_sam(
     val_dataloader: DataLoader,
 ):
     """The SAM training loop."""
-
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    focal_losses = AverageMeter()
+    dice_losses = AverageMeter()
+    iou_losses = AverageMeter()
+    anchor_losses = AverageMeter()
+    contra_losses = AverageMeter()
+    total_losses = AverageMeter()
     focal_loss = FocalLoss()
     dice_loss = DiceLoss()
     contra_loss = ContraLoss()
+    end = time.time()
+    current_iter = 0
+    num_iters = cfg.num_iters
     max_iou = 0.
 
-    for epoch in range(1, cfg.num_epochs + 1):
-        batch_time = AverageMeter()
-        data_time = AverageMeter()
-        focal_losses = AverageMeter()
-        dice_losses = AverageMeter()
-        iou_losses = AverageMeter()
-        anchor_losses = AverageMeter()
-        contra_losses = AverageMeter()
-        total_losses = AverageMeter()
-        end = time.time()
-        num_iter = len(train_dataloader)
+    while current_iter < num_iters:
 
         for iter, data in enumerate(train_dataloader):
 
@@ -75,6 +77,7 @@ def train_sam(
             for i, (pred_mask, soft_mask, anchor_mask, iou_prediction) in enumerate(zip(pred_masks, soft_masks, anchor_masks, iou_predictions)):
                 anchor_mask = (anchor_mask > 0.).float()
                 loss_contra += contra_loss(soft_image_embeds[i], anchor_image_embeds[i], soft_res_masks[i].clone().detach(), anchor_res_masks[i].clone().detach())
+                # loss_contra += contra_loss(pred_image_embeds[i], anchor_image_embeds[i], pred_res_masks[i].clone().detach(), anchor_res_masks[i].clone().detach())
 
                 loss_anchor += (0.5 * dice_loss(pred_mask, anchor_mask) + 0.5 * dice_loss(soft_mask, anchor_mask))
 
@@ -92,6 +95,7 @@ def train_sam(
             optimizer.zero_grad()
             torch.cuda.empty_cache()
 
+            current_iter += 1
             batch_time.update(time.time() - end)
             end = time.time()
 
@@ -104,7 +108,7 @@ def train_sam(
             contra_losses.update(loss_contra.item(), batch_size)
             total_losses.update(loss_total.item(), batch_size)
 
-            fabric.print(f'Epoch: [{epoch}][{iter + 1}/{len(train_dataloader)}]'
+            fabric.print(f'Iter: [{current_iter + 1}]'
                          f' | Time [{batch_time.val:.3f}s ({batch_time.avg:.3f}s)]'
                          f' | Data [{data_time.val:.3f}s ({data_time.avg:.3f}s)]'
                          f' | Focal Loss [{focal_losses.val:.4f} ({focal_losses.avg:.4f})]'
@@ -117,15 +121,15 @@ def train_sam(
             loss_logger = {"Focal Loss": focal_losses.avg, "Dice Loss": dice_losses.avg,
                 "IoU Loss": iou_losses.avg, "Anchor Loss": anchor_losses.avg,
                 "Contrast Loss": contra_losses.avg, "Total Loss": total_losses.avg}
-            fabric.log_dict(loss_logger, num_iter * (epoch - 1) + iter)
+            fabric.log_dict(loss_logger, current_iter)
             torch.cuda.empty_cache()
 
-        if epoch % cfg.eval_interval == 0:
-            iou, f1_score = validate(fabric, cfg, model, val_dataloader, cfg.name, epoch)
-            if iou > max_iou:
-                state = {"model": model, "optimizer": optimizer}
-                fabric.save(os.path.join(cfg.out_dir, "save", "last-ckpt.pth"), state)
-                max_iou = iou
+            if (current_iter + 1) % cfg.valid_step == 0:
+                iou, f1_score = validate(fabric, cfg, model, val_dataloader, cfg.name, current_iter)
+                if iou > max_iou:
+                    state = {"model": model, "optimizer": optimizer}
+                    fabric.save(os.path.join(cfg.out_dir, "save", f"{cfg.dataset}-{cfg.prompt}-last-ckpt.pth"), state)
+                    max_iou = iou
 
 
 def configure_opt(cfg: Box, model: Model):
@@ -140,7 +144,7 @@ def configure_opt(cfg: Box, model: Model):
         else:
             return 1 / (cfg.opt.decay_factor**2)
 
-    optimizer = torch.optim.Adam(model.model.parameters(), lr=cfg.opt.learning_rate, weight_decay=cfg.opt.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.opt.learning_rate, weight_decay=cfg.opt.weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
     return optimizer, scheduler
@@ -154,40 +158,59 @@ def corrupt_main(cfg):
         main(cfg)
 
 
-def main(cfg: Box) -> None:
+def multi_main(cfg):
+    prompts = ["box", "point"]
+    for prompt in prompts:
+        cfg.prompt = prompt
+        torch.cuda.empty_cache()
+        main(cfg)
+
+
+def multi_main_ckpt(cfg, ckpt):
+    prompts = ["box", "point"]
+    for prompt in prompts:
+        cfg.prompt = prompt
+        ckpt = ckpt.replace("box", prompt)
+        ckpt = ckpt.replace("point", prompt)
+        torch.cuda.empty_cache()
+        main(cfg, ckpt)
+
+
+def main(cfg: Box, ckpt: str = None) -> None:
     gpu_ids = cfg.gpu_ids.split(',')
     num_devices = len(gpu_ids)
 
     fabric = L.Fabric(accelerator="auto",
                       devices=num_devices,
                       strategy="auto",
-                      loggers=[TensorBoardLogger(cfg.out_dir)])
+                      loggers=[TensorBoardLogger(cfg.out_dir, name=f"{cfg.dataset}-{cfg.prompt}")])
     fabric.launch()
     fabric.seed_everything(1337 + fabric.global_rank)
 
     if fabric.global_rank == 0:
         os.makedirs(os.path.join(cfg.out_dir, "save"), exist_ok=True)
-        create_csv(os.path.join(cfg.out_dir, "metrics.csv"), csv_head=cfg.csv_keys)
+        create_csv(os.path.join(cfg.out_dir, f"{cfg.dataset}-{cfg.prompt}.csv"), csv_head=cfg.csv_keys)
 
     with fabric.device:
         model = Model(cfg)
         model.setup()
+        LoRA_Sam(model.model, 4)
 
     load_datasets = call_load_dataset(cfg)
     train_data, val_data = load_datasets(cfg, model.model.image_encoder.img_size)
-    optimizer, scheduler = configure_opt(cfg, model)
+    optimizer, scheduler = configure_opt(cfg, model.model)
+
+    if ckpt is not None:
+        full_checkpoint = fabric.load(ckpt)
+        model.load_state_dict(full_checkpoint["model"])
+        # optimizer.load_state_dict(full_checkpoint["optimizer"])
 
     train_data = fabric._setup_dataloader(train_data)
     val_data = fabric._setup_dataloader(val_data)
     model, optimizer = fabric.setup(model, optimizer)
 
-    if cfg.resume and cfg.model.ckpt is not None:
-        full_checkpoint = fabric.load(cfg.model.ckpt)
-        model.load_state_dict(full_checkpoint["model"])
-        optimizer.load_state_dict(full_checkpoint["optimizer"])
-
     anchor_model = copy_model(model)
-    validate(fabric, cfg, anchor_model, val_data, name=cfg.name, epoch=0)
+    validate(fabric, cfg, anchor_model, val_data, name=cfg.name, iters=0)
     train_sam(cfg, fabric, model, anchor_model, optimizer, scheduler, train_data, val_data)
 
     del model, anchor_model, train_data, val_data
@@ -198,5 +221,18 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision('high')
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg.gpu_ids
 
-    main(cfg)
+    # main(cfg)
+    multi_main(cfg)
     torch.cuda.empty_cache()
+
+    # for dataset in ["COCO", "PascalVOC", "ISIC", "Polyp", "COD10K", "OCID"]:
+    #     cfg.dataset = dataset
+    #     multi_main(cfg)
+    #     torch.cuda.empty_cache()
+
+    # for dataset in ["PascalVOC", "ISIC", "Polyp", "OCID"]:
+    #     old_dataset = cfg.dataset
+    #     cfg.dataset = dataset
+    #     ckpt = cfg.model.ckpt.replace(old_dataset, dataset)
+    #     multi_main_ckpt(cfg, ckpt)
+    #     torch.cuda.empty_cache()

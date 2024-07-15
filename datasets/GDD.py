@@ -9,11 +9,11 @@ import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from skimage.draw import polygon2mask
 
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, collate_fn_, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_, decode_mask
 
 
 class GDDDataset(Dataset):
-    def __init__(self, cfg, root_dir, transform=None, training=False, if_self_training=False):
+    def __init__(self, cfg, root_dir, transform=None, if_self_training=False):
         self.cfg = cfg
         self.root_dir = root_dir
         self.transform = transform
@@ -33,6 +33,14 @@ class GDDDataset(Dataset):
         image_path = self.images[idx]
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        if self.cfg.get_prompt:
+            image_info = {}
+            height, width, _ = image.shape
+            image_info["file_path"] = image_path
+            image_info["height"] = height
+            image_info["width"] = width
+            return idx, image_info, image
 
         gt_path = self.gts[idx]
         gt_mask = cv2.imread(gt_path, cv2.IMREAD_GRAYSCALE)
@@ -163,7 +171,7 @@ def load_datasets(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.GDD.train,
         transform=transform,
-        training=True,
+        if_self_training=cfg.augment,
     )
     val_dataloader = DataLoader(
         val,
@@ -180,37 +188,6 @@ def load_datasets(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
-
-
-def load_datasets_soft(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = GDDDataset(
-        cfg,
-        root_dir=cfg.datasets.GDD.test,
-        transform=transform,
-    )
-    soft_train = GDDDataset(
-        cfg,
-        root_dir=cfg.datasets.GDD.train,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
 
 
 def load_datasets_coarse(cfg, img_size):
@@ -224,7 +201,7 @@ def load_datasets_coarse(cfg, img_size):
         cfg,
         root_dir=cfg.datasets.GDD.train,
         transform=transform,
-        training=True,
+        if_self_training=cfg.augment,
     )
     val_dataloader = DataLoader(
         val,
@@ -241,37 +218,6 @@ def load_datasets_coarse(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
-
-
-def load_datasets_soft_coarse(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = GDDDatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.GDD.test,
-        transform=transform,
-    )
-    soft_train = GDDDatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.GDD.train,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
 
 
 def load_datasets_visual(cfg, img_size):
@@ -306,3 +252,21 @@ def load_datasets_visual_coarse(cfg, img_size):
         collate_fn=collate_fn_,
     )
     return val_dataloader
+
+
+def load_datasets_prompt(cfg, img_size):
+    transform = ResizeAndPad(img_size)
+    train = GDDDataset(
+        cfg,
+        root_dir=cfg.datasets.GDD.train,
+        transform=transform,
+        if_self_training=cfg.augment,
+    )
+    train_dataloader = DataLoader(
+        train,
+        batch_size=cfg.batch_size,
+        shuffle=True,
+        num_workers=cfg.num_workers,
+        collate_fn=collate_fn_,
+    )
+    return train_dataloader

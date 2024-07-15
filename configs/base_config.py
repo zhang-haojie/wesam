@@ -1,7 +1,9 @@
 base_config = {
     "eval_interval": 1,
-    "ema_rate": 0.999,
-    "csv_keys": ["Name", "Prompt", "Mean IoU", "Mean F1", "epoch"],
+    "ema_rate": 0.9999,
+    "get_prompt": False,
+    "split": True,
+    "csv_keys": ["Name", "Prompt", "Mean IoU", "Mean F1", "iters", "loss"],
     "opt": {
         "learning_rate": 1e-4,
         "weight_decay": 1e-4,
@@ -40,6 +42,10 @@ base_config = {
         "coco": {
             "root_dir": "./data/coco2017/val2017",            
             "annotation_file": "./data/coco2017/annotations/instances_val2017.json",
+        },
+        "coconut": {
+            "root_dir": "./data/coconut/val2017",
+            "annotation_file": "./data/coconut/coconut_dataset/annotations/annotations/relabeled_instances_val.json",
         },
         "PascalVOC": {
             "root_dir": "./data/VOC2012/",

@@ -40,7 +40,7 @@ class Model(nn.Module):
             for param in self.model.mask_decoder.parameters():
                 param.requires_grad = False
 
-        self.finetune()
+        # self.finetune()
 
     def finetune(self):
         LoRA_Sam(self.model, 4)
@@ -69,19 +69,19 @@ class Model(nn.Module):
                     nn.init.zeros_(param)
 
     def forward(self, images, prompts):
-        _, _, H, W = images.shape
         image_embeddings = self.encode(images)
-        pred_masks, ious, res_masks = self.decode((H, W), prompts)
+        pred_masks, ious, res_masks = self.decode(prompts)
         return image_embeddings, pred_masks, ious, res_masks
 
     def encode(self, images):
+        _, _, H, W = images.shape
+        self.image_shape = (H, W)
         self.image_embeddings = self.model.image_encoder(images)
         return self.image_embeddings 
 
-    def decode(self, image_shape, prompts):
-        image_embeddings = self.image_embeddings
-        if image_embeddings == None:
-            raise "No image embeddings"
+    def decode(self, prompts, image_embeddings=None):
+        if image_embeddings is None:
+            image_embeddings = self.image_embeddings
 
         pred_masks = []
         ious = []
@@ -111,7 +111,7 @@ class Model(nn.Module):
 
             masks = F.interpolate(
                 low_res_masks,
-                image_shape,
+                self.image_shape,
                 mode="bilinear",
                 align_corners=False,
             )
@@ -119,3 +119,9 @@ class Model(nn.Module):
             ious.append(iou_predictions)
             res_masks.append(low_res_masks)
         return pred_masks, ious, res_masks
+
+    def get_predictor(self):
+        return SamPredictor(self.model)
+
+    def get_generator(self, output_mode):
+        return SamAutomaticMaskGenerator(self.model, output_mode=output_mode)

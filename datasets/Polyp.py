@@ -9,11 +9,11 @@ import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from skimage.draw import polygon2mask
 
-from datasets.tools import ResizeAndPad, soft_transform, collate_fn, collate_fn_soft, decode_mask
+from datasets.tools import ResizeAndPad, soft_transform, collate_fn, decode_mask, collate_fn_
 
 
 class PolypDataset(Dataset):
-    def __init__(self, cfg, root_dir, annotation_file, transform=None, training=False, if_self_training=False):
+    def __init__(self, cfg, root_dir, annotation_file, transform=None, split=False, training=False, if_self_training=False):
         self.cfg = cfg
         self.root_dir = root_dir
         self.transform = transform
@@ -21,21 +21,24 @@ class PolypDataset(Dataset):
             anns = json.load(ann_file)
         all_images = list(anns.keys())
 
-        train_images = []
-        eval_images = []
-        while all_images:
-            for _ in range(5):
+        if split:
+            train_images = []
+            eval_images = []
+            while all_images:
+                for _ in range(5):
+                    if all_images:
+                        train_images.append(all_images.pop(0))
                 if all_images:
-                    train_images.append(all_images.pop(0))
-            if all_images:
-                eval_images.append(all_images.pop(0))
+                    eval_images.append(all_images.pop(0))
 
-        if training:
-            random.shuffle(train_images)
-            images = train_images
+            if training:
+                random.shuffle(train_images)
+                images = train_images
+            else:
+                random.shuffle(eval_images)
+                images = eval_images
         else:
-            random.shuffle(eval_images)
-            images = eval_images
+            images = all_images
 
         self.images = images
         self.anns = anns
@@ -58,6 +61,14 @@ class PolypDataset(Dataset):
 
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        if self.cfg.get_prompt:
+            image_info = {}
+            height, width, _ = image.shape
+            image_info["file_path"] = image_path
+            image_info["height"] = height
+            image_info["width"] = width
+            return idx, image_info, image
 
         gt_path = image_path.replace("images", "masks")
         gt_mask = cv2.imread(gt_path, cv2.IMREAD_GRAYSCALE)
@@ -184,13 +195,16 @@ def load_datasets(cfg, img_size):
         root_dir=cfg.datasets.Polyp.root_dir,
         annotation_file=cfg.datasets.Polyp.annotation_file,
         transform=transform,
+        split=cfg.split,
     )
     train = PolypDataset(
         cfg,
         root_dir=cfg.datasets.Polyp.root_dir,
         annotation_file=cfg.datasets.Polyp.annotation_file,
         transform=transform,
+        split=cfg.split,
         training=True,
+        if_self_training=cfg.augment,
     )
     val_dataloader = DataLoader(
         val,
@@ -207,39 +221,6 @@ def load_datasets(cfg, img_size):
         collate_fn=collate_fn,
     )
     return train_dataloader, val_dataloader
-
-
-def load_datasets_soft(cfg, img_size):
-    transform = ResizeAndPad(img_size)
-    val = PolypDataset(
-        cfg,
-        root_dir=cfg.datasets.Polyp.root_dir,
-        annotation_file=cfg.datasets.Polyp.annotation_file,
-        transform=transform,
-    )
-    soft_train = PolypDataset(
-        cfg,
-        root_dir=cfg.datasets.Polyp.root_dir,
-        annotation_file=cfg.datasets.Polyp.annotation_file,
-        transform=transform,
-        training=True,
-        if_self_training=True,
-    )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
-    )
-    return soft_train_dataloader, val_dataloader
 
 
 def load_datasets_coarse(cfg, img_size):
@@ -249,13 +230,16 @@ def load_datasets_coarse(cfg, img_size):
         root_dir=cfg.datasets.Polyp.root_dir,
         annotation_file=cfg.datasets.Polyp.annotation_file,
         transform=transform,
+        split=cfg.split,
     )
     train = PolypDatasetwithCoarse(
         cfg,
         root_dir=cfg.datasets.Polyp.root_dir,
         annotation_file=cfg.datasets.Polyp.annotation_file,
         transform=transform,
+        split=cfg.split,
         training=True,
+        if_self_training=cfg.augment,
     )
     val_dataloader = DataLoader(
         val,
@@ -274,34 +258,22 @@ def load_datasets_coarse(cfg, img_size):
     return train_dataloader, val_dataloader
 
 
-def load_datasets_soft_coarse(cfg, img_size):
+def load_datasets_prompt(cfg, img_size):
     transform = ResizeAndPad(img_size)
-    val = PolypDatasetwithCoarse(
+    train = PolypDataset(
         cfg,
         root_dir=cfg.datasets.Polyp.root_dir,
         annotation_file=cfg.datasets.Polyp.annotation_file,
         transform=transform,
-    )
-    soft_train = PolypDatasetwithCoarse(
-        cfg,
-        root_dir=cfg.datasets.Polyp.root_dir,
-        annotation_file=cfg.datasets.Polyp.annotation_file,
-        transform=transform,
+        split=cfg.split,
         training=True,
-        if_self_training=True,
+        if_self_training=cfg.augment,
     )
-    val_dataloader = DataLoader(
-        val,
-        batch_size=cfg.val_batchsize,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        collate_fn=collate_fn,
-    )
-    soft_train_dataloader = DataLoader(
-        soft_train,
+    train_dataloader = DataLoader(
+        train,
         batch_size=cfg.batch_size,
         shuffle=True,
         num_workers=cfg.num_workers,
-        collate_fn=collate_fn_soft,
+        collate_fn=collate_fn_,
     )
-    return soft_train_dataloader, val_dataloader
+    return train_dataloader
