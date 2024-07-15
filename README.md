@@ -56,37 +56,10 @@ python adaptation.py
 ```
 
 
-## 🖼️ Demo
-
-### COCO Dataset
+## 🖼️ Visualization
 
 <div align="center">
-<img width="800" alt="image" src="asserts/COCO_vis.webp?raw=true">
-</div>
-
-### ISIC Dataset
-
-<div align="center">
-<img width="800" alt="image" src="asserts/ISIC_vis.webp?raw=true">
-</div>
-
-### OCID Dataset
-
-<div align="center">
-<img width="800" alt="image" src="asserts/OCID_vis.webp?raw=true">
-</div>
-
-### CAMO Dataset
-
-<div align="center">
-<img width="800" alt="image" src="asserts/CAMO_vis.webp?raw=true">
-</div>
-
-### COCO-C Dataset
-
-<div align="center">
-<img width="800" alt="image" src="asserts/corrupt-1.webp?raw=true">
-<img width="800" alt="image" src="asserts/corrupt-2.webp?raw=true">
+<img width="800" alt="image" src="asserts/VISUAL.webp?raw=true">
 </div>
 
 
