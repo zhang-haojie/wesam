@@ -10,7 +10,7 @@ from lightning.fabric.fabric import _FabricOptimizer
 from lightning.fabric.loggers import TensorBoardLogger, CSVLogger
 from torch.utils.data import DataLoader
 
-from configs.config_validate import cfg
+from configs.config import cfg
 from losses import DiceLoss, FocalLoss, ContraLoss
 from datasets import call_load_dataset
 
