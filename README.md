@@ -86,10 +86,12 @@ The content of this project itself is licensed under [LICENSE](LICENSE).
 If you find this project useful in your research, please consider cite:
 
 ```BibTeX
-@article{zhang2023improving,
-      title={Improving the Generalization of Segmentation Foundation Model under Distribution Shift via Weakly Supervised Adaptation},
-      author={Zhang, Haojie and Su, Yongyi and Xu, Xun and Jia, Kui},
-      journal={arXiv preprint arXiv:2312.03502},
-      year={2023}
+@inproceedings{zhang2024improving,
+  title={Improving the generalization of segmentation foundation model under distribution shift via weakly supervised adaptation},
+  author={Zhang, Haojie and Su, Yongyi and Xu, Xun and Jia, Kui},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={23385--23395},
+  year={2024}
+}
 }
 ```
