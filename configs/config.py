@@ -3,18 +3,18 @@ from configs.base_config import base_config
 
 
 config = {
-    "gpu_ids": "4,5,6,7",
+    "gpu_ids": "0,1,2,3",
     "batch_size": 1,
     "val_batchsize": 4,
     "num_workers": 4,
-    "num_iters": 30000,
+    "num_iters": 40000,
     "max_nums": 40,
     "num_points": 5,
-    "valid_step": 100,
+    "eval_interval": 1,
     "dataset": "COCO",
     "prompt": "box",
-    "out_dir": "output/debugging/mask_student_50",
-    "name": "only_mask_student_50",
+    "out_dir": "output/benchmark/COCO",
+    "name": "baseline",
     "augment": True,
     "corrupt": None,
     "visual": False,
