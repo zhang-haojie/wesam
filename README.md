@@ -55,6 +55,12 @@ see [PREPARE](PREPARE.md).
 python adaptation.py
 ```
 
+### 4. Validation
+
+```
+python validate.py --ckpt /path/to/checkpoint
+```
+
 
 ## 🖼️ Visualization
 

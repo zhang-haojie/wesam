@@ -10,3 +10,4 @@ imagecorruptions==1.1.2
 safetensors==0.4.1
 torchsummary==1.5.1
 tensorboard==2.14.0
+einops

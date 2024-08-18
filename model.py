@@ -12,7 +12,6 @@ class Model(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
-        self.image_embeddings = None
 
     def get_checkpoint(self, model_type):
         if model_type == "vit_b":
@@ -70,19 +69,16 @@ class Model(nn.Module):
 
     def forward(self, images, prompts):
         image_embeddings = self.encode(images)
-        pred_masks, ious, res_masks = self.decode(prompts)
+        pred_masks, ious, res_masks = self.decode(prompts, image_embeddings)
         return image_embeddings, pred_masks, ious, res_masks
 
     def encode(self, images):
         _, _, H, W = images.shape
         self.image_shape = (H, W)
-        self.image_embeddings = self.model.image_encoder(images)
-        return self.image_embeddings 
+        image_embeddings = self.model.image_encoder(images)
+        return image_embeddings 
 
-    def decode(self, prompts, image_embeddings=None):
-        if image_embeddings is None:
-            image_embeddings = self.image_embeddings
-
+    def decode(self, prompts, image_embeddings):
         pred_masks = []
         ious = []
         res_masks = []
